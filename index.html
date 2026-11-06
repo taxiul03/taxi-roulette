@@ -143,20 +143,28 @@
             max-width: 320px;
             box-shadow: 0 0 30px rgba(241, 196, 15, 0.4);
         }
+        
+        /* 3D-эффект для картинки */
         .yak-img-container {
             width: 180px;
             height: 180px;
             border-radius: 50%;
-            overflow: hidden;
             border: 6px solid #1a252f;
-            margin: 0 auto 15px auto;
+            margin: 25px auto 15px auto; /* Увеличен верхний отступ для выхода за края */
             background: #fff;
+            position: relative;
+            /* overflow: hidden; убрано для выхода за границы */
         }
         .yak-img-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            width: 125%; /* Картинка больше контейнера */
+            height: auto;
+            position: absolute;
+            bottom: -5px; /* Плотно прижимаем к нижнему краю */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
         }
+        
         .win-text {
             font-size: 24px;
             font-weight: bold;
@@ -182,7 +190,7 @@
         .confetti {
             position: fixed;
             top: -50px;
-            z-index: 90;
+            z-index: 1000; /* Перенесено на самый передний план */
             user-select: none;
             animation: fall linear forwards;
         }
@@ -190,7 +198,6 @@
             to { transform: translateY(110vh) rotate(360deg); }
         }
 
-        /* Футер */
         .footer {
             margin-top: auto;
             margin-bottom: 15px;
@@ -261,7 +268,6 @@
         let spinTime = 0;
         let spinTimeTotal = 0;
 
-        // Обновленные фразы
         const phrases = [
             "Хорошей дороги!",
             "Удачи на трассе!",
@@ -274,7 +280,6 @@
             "Ни гвоздя, ни жезла!"
         ];
 
-        // Тексты для кнопки
         const buttonTexts = [
             "Крутить лохотрон!",
             "Запускай рулетку!",
@@ -288,7 +293,6 @@
         ];
         let currentBtnIndex = 0;
 
-        // Логика кнопки "Создать ярлык"
         let deferredPrompt;
         const installBtn = document.getElementById('install-button');
 
@@ -297,7 +301,6 @@
             deferredPrompt = e;
         });
 
-        // Таймер на исчезновение через 7 секунд
         setTimeout(() => {
             if(installBtn) {
                 installBtn.style.opacity = '0';
@@ -315,13 +318,11 @@
             installBtn.style.display = 'none';
         }
 
-        // Обновление текста главной кнопки
         function updateStartButton() {
             document.getElementById('start-button').innerText = buttonTexts[currentBtnIndex];
             currentBtnIndex = (currentBtnIndex + 1) % buttonTexts.length;
         }
 
-        // Вызываем при загрузке страницы
         window.onload = function() {
             updateStartButton();
         };
@@ -362,14 +363,25 @@
 
             for(let i = 0; i < participants.length; i++) {
                 let angle = currentAngle + i * arc;
-                ctx.fillStyle = (i % 2 === 0) ? "#f1c40f" : "#1a252f";
+                
+                let bgColor, textColor;
+                // Решение проблемы слияния цветов при нечетном количестве
+                if (participants.length % 2 !== 0 && i === participants.length - 1) {
+                    bgColor = "#1e8449"; // Зеленый для замыкающего нечетного сектора
+                    textColor = "#ffffff";
+                } else {
+                    bgColor = (i % 2 === 0) ? "#f1c40f" : "#1a252f";
+                    textColor = (i % 2 === 0) ? "#1a252f" : "#f1c40f";
+                }
+
+                ctx.fillStyle = bgColor;
                 ctx.beginPath();
                 ctx.arc(150, 150, 150, angle, angle + arc, false);
                 ctx.arc(150, 150, 0, angle + arc, angle, true);
                 ctx.fill();
                 ctx.save();
 
-                ctx.fillStyle = (i % 2 === 0) ? "#1a252f" : "#f1c40f";
+                ctx.fillStyle = textColor;
                 ctx.translate(150 + Math.cos(angle + arc / 2) * 110, 
                               150 + Math.sin(angle + arc / 2) * 110);
                 ctx.rotate(angle + arc / 2 + Math.PI / 2);
@@ -441,7 +453,7 @@
             document.getElementById('modal').style.display = 'none';
             document.getElementById('roulette-container').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'block';
-            updateStartButton(); // Меняем текст кнопки для следующего раза
+            updateStartButton(); 
         }
     </script>
 </body>
