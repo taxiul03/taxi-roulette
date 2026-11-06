@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лохотрон Такси</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7ca18; /* Цвет такси */
+            color: #333;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        header {
+            background-color: #222;
+            color: #f7ca18;
+            width: 100%;
+            text-align: center;
+            padding: 15px 0;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin-top: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 4px dashed #222;
+        }
+        h2 { margin-top: 0; font-size: 20px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #222;
+            color: #f7ca18;
+            border: none;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        
+        /* Рулетка */
+        #roulette-container {
+            display: none;
+            margin-top: 20px;
+            position: relative;
+        }
+        .pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; 
+            height: 0; 
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid #e74c3c;
+            z-index: 10;
+        }
+        canvas {
+            border-radius: 50%;
+            border: 5px solid #222;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        /* Модальное окно победы */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .modal-content {
+            background: #f7ca18;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            border: 8px solid #222;
+            position: relative;
+            max-width: 320px;
+        }
+        .yak-img-container {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 6px solid #222;
+            margin: 0 auto 15px auto;
+            background: #fff;
+        }
+        .yak-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .win-text {
+            font-size: 26px;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>ТАКСИ МЕСТНОЕ<br>70-00-77, 40-40-40</header>
+
+    <div class="container" id="setup-screen">
+        <h2>Настройки розыгрыша</h2>
+        
+        <div class="input-group">
+            <label>Всего номеров на смене:</label>
+            <input type="number" id="total-numbers" value="10" min="2" max="50">
+        </div>
+
+        <div class="input-group">
+            <label>Исключить номера (через пробел):</label>
+            <input type="text" id="excluded-numbers" placeholder="Например: 2 5 8">
+        </div>
+
+        <button onclick="startRoulette()">КРУТИТЬ БАРАБАН!</button>
+        <p id="error-msg" style="color: red; font-weight: bold; display: none;"></p>
+    </div>
+
+    <div id="roulette-container">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="300" height="300"></canvas>
+    </div>
+
+    <!-- Победное окно -->
+    <div id="modal">
+        <div class="modal-content">
+            <div class="yak-img-container">
+                <!-- Здесь загружается ваша локальная картинка -->
+                <img src="yak.png" alt="Якубович" onerror="this.src=''; this.alt='Картинка yak.png не найдена в папке';">
+            </div>
+            <div class="win-text" id="win-announcement">Цифра X на барабане!</div>
+            <button onclick="closeModal()">Сыграть еще раз</button>
+        </div>
+    </div>
+
+    <script>
+        let participants = [];
+        let canvas = document.getElementById("wheel");
+        let ctx = canvas.getContext("2d");
+        let currentAngle = 0;
+        let spinTimeout = null;
+        let spinAngleStart = 0;
+        let spinTime = 0;
+        let spinTimeTotal = 0;
+
+        function startRoulette() {
+            let total = parseInt(document.getElementById('total-numbers').value);
+            let excludedRaw = document.getElementById('excluded-numbers').value;
+            let errorMsg = document.getElementById('error-msg');
+
+            // Обработка исключений (через пробел или запятую)
+            let excluded = excludedRaw.split(/[\s,]+/).map(n => parseInt(n)).filter(n => !isNaN(n));
+            
+            participants = [];
+            for (let i = 1; i <= total; i++) {
+                if (!excluded.includes(i)) {
+                    participants.push(i);
+                }
+            }
+
+            if (participants.length < 2) {
+                errorMsg.innerText = "Ошибка! Должно быть минимум 2 участника.";
+                errorMsg.style.display = "block";
+                return;
+            }
+
+            errorMsg.style.display = "none";
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('roulette-container').style.display = 'block';
+
+            drawRouletteWheel();
+            spin();
+        }
+
+        function drawRouletteWheel() {
+            let arc = Math.PI / (participants.length / 2);
+            ctx.clearRect(0,0,300,300);
+
+            for(let i = 0; i < participants.length; i++) {
+                let angle = currentAngle + i * arc;
+                ctx.fillStyle = (i % 2 === 0) ? "#f7ca18" : "#222";
+                ctx.beginPath();
+                ctx.arc(150, 150, 150, angle, angle + arc, false);
+                ctx.arc(150, 150, 0, angle + arc, angle, true);
+                ctx.fill();
+                ctx.save();
+
+                ctx.fillStyle = (i % 2 === 0) ? "#222" : "#f7ca18";
+                ctx.translate(150 + Math.cos(angle + arc / 2) * 110, 
+                              150 + Math.sin(angle + arc / 2) * 110);
+                ctx.rotate(angle + arc / 2 + Math.PI / 2);
+                let text = participants[i];
+                ctx.font = 'bold 24px Arial';
+                ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
+                ctx.restore();
+            }
+        }
+
+        function rotateWheel() {
+            spinTime += 30;
+            if(spinTime >= spinTimeTotal) {
+                stopRotateWheel();
+                return;
+            }
+            let spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+            currentAngle += (spinAngle * Math.PI / 180);
+            drawRouletteWheel();
+            spinTimeout = setTimeout(rotateWheel, 30);
+        }
+
+        function stopRotateWheel() {
+            clearTimeout(spinTimeout);
+            let degrees = currentAngle * 180 / Math.PI + 90;
+            let arcd = 360 / participants.length;
+            let index = Math.floor((360 - degrees % 360) / arcd);
+            
+            setTimeout(() => {
+                document.getElementById('win-announcement').innerText = "Цифра " + participants[index] + " на барабане!";
+                document.getElementById('modal').style.display = 'flex';
+            }, 500);
+        }
+
+        function spin() {
+            spinAngleStart = Math.random() * 10 + 20;
+            spinTime = 0;
+            spinTimeTotal = Math.random() * 3 + 4 * 1000;
+            rotateWheel();
+        }
+
+        function easeOut(t, b, c, d) {
+            let ts = (t/=d)*t;
+            let tc = ts*t;
+            return b+c*(tc + -3*ts + 3*t);
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('roulette-container').style.display = 'none';
+            document.getElementById('setup-screen').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
