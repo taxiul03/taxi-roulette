@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Лохотрон Такси</title>
     
-    <!-- Иконки для вкладок и ярлыков на рабочем столе -->
     <link rel="icon" type="image/png" href="yak.png">
     <link rel="apple-touch-icon" href="yak.png">
     <meta name="theme-color" content="#2c3e50">
@@ -61,7 +60,7 @@
             box-sizing: border-box;
             background-color: #f9f9f9;
         }
-        button {
+        button.start-btn {
             background-color: #f1c40f;
             color: #1a252f;
             border: none;
@@ -75,11 +74,29 @@
             transition: 0.2s;
             box-shadow: 0 4px 0 #d4ac0d;
         }
-        button:active { 
+        button.start-btn:active { 
             transform: translateY(4px);
             box-shadow: 0 0 0 #d4ac0d;
         }
         
+        button.install-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            box-shadow: 0 3px 0 #2980b9;
+            transition: opacity 0.5s ease;
+        }
+        button.install-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 #2980b9;
+        }
+
         #roulette-container {
             display: none;
             margin-top: 20px;
@@ -162,7 +179,6 @@
             text-transform: uppercase;
         }
 
-        /* Анимация конфетти */
         .confetti {
             position: fixed;
             top: -50px;
@@ -173,6 +189,22 @@
         @keyframes fall {
             to { transform: translateY(110vh) rotate(360deg); }
         }
+
+        /* Футер */
+        .footer {
+            margin-top: auto;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        .footer-left { font-weight: bold; }
+        .footer-left span { color: #f1c40f; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -192,7 +224,9 @@
             <input type="text" id="excluded-numbers" placeholder="Например: 2 5 8">
         </div>
 
-        <button onclick="startRoulette()">КРУТИТЬ ЛОХОТРОН!</button>
+        <button class="start-btn" id="start-button" onclick="startRoulette()">КРУТИТЬ ЛОХОТРОН!</button>
+        <button class="install-btn" id="install-button" onclick="promptInstall()">Создать ярлык на рабочем столе?</button>
+
         <p id="error-msg" style="color: red; font-weight: bold; display: none;"></p>
     </div>
 
@@ -207,9 +241,14 @@
                 <img src="yak.png" alt="Якубович" onerror="this.style.display='none';">
             </div>
             <div class="win-text" id="win-announcement">Цифра <br><span class="highlight-number">X</span><br> на барабане!</div>
-            <div class="win-phrase" id="win-phrase">Удачи в трассе!</div>
-            <button onclick="closeModal()">Сыграть еще раз</button>
+            <div class="win-phrase" id="win-phrase">Удачи на трассе!</div>
+            <button class="start-btn" onclick="closeModal()">Сыграть еще раз</button>
         </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-left">Created by Sheriff <span>⭐</span></div>
+        <div class="footer-right">Ver.007, november 2026</div>
     </div>
 
     <script>
@@ -222,9 +261,10 @@
         let spinTime = 0;
         let spinTimeTotal = 0;
 
+        // Обновленные фразы
         const phrases = [
             "Хорошей дороги!",
-            "Удачи в трассе!",
+            "Удачи на трассе!",
             "Ровной дороги!",
             "Счастливого пути!",
             "Удачной поездки!",
@@ -233,6 +273,58 @@
             "Безопасной дороги!",
             "Ни гвоздя, ни жезла!"
         ];
+
+        // Тексты для кнопки
+        const buttonTexts = [
+            "Крутить лохотрон!",
+            "Запускай рулетку!",
+            "Вжжжух!",
+            "Поехали!",
+            "Врубай передачу!",
+            "Погнали!",
+            "Пуск!",
+            "Начать шоу!",
+            "Педаль в пол!"
+        ];
+        let currentBtnIndex = 0;
+
+        // Логика кнопки "Создать ярлык"
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-button');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        // Таймер на исчезновение через 7 секунд
+        setTimeout(() => {
+            if(installBtn) {
+                installBtn.style.opacity = '0';
+                setTimeout(() => installBtn.style.display = 'none', 500);
+            }
+        }, 7000);
+
+        function promptInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt = null;
+            } else {
+                alert("Чтобы добавить ярлык:\nНажмите кнопку 'Поделиться' (или меню браузера) и выберите 'На экран Домой' / 'Добавить на гл. экран'.");
+            }
+            installBtn.style.display = 'none';
+        }
+
+        // Обновление текста главной кнопки
+        function updateStartButton() {
+            document.getElementById('start-button').innerText = buttonTexts[currentBtnIndex];
+            currentBtnIndex = (currentBtnIndex + 1) % buttonTexts.length;
+        }
+
+        // Вызываем при загрузке страницы
+        window.onload = function() {
+            updateStartButton();
+        };
 
         function startRoulette() {
             let total = parseInt(document.getElementById('total-numbers').value);
@@ -311,7 +403,6 @@
                 conf.style.fontSize = (Math.random() * 15 + 15) + 'px';
                 document.body.appendChild(conf);
                 
-                // Удаляем элементы после падения
                 setTimeout(() => conf.remove(), 4000);
             }
         }
@@ -350,6 +441,7 @@
             document.getElementById('modal').style.display = 'none';
             document.getElementById('roulette-container').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'block';
+            updateStartButton(); // Меняем текст кнопки для следующего раза
         }
     </script>
 </body>
