@@ -2,9 +2,16 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Лохотрон Такси</title>
-    <link rel="icon" href="data:,">
+    
+    <!-- Иконки для вкладок и ярлыков на рабочем столе -->
+    <link rel="icon" type="image/png" href="yak.png">
+    <link rel="apple-touch-icon" href="yak.png">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -15,6 +22,7 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            overflow-x: hidden;
         }
         header {
             background-color: #1a252f;
@@ -38,6 +46,8 @@
             max-width: 400px;
             text-align: center;
             border: 4px solid #f1c40f;
+            position: relative;
+            z-index: 5;
         }
         h2 { margin-top: 0; font-size: 20px; color: #2c3e50; }
         .input-group { margin-bottom: 15px; text-align: left; }
@@ -70,11 +80,11 @@
             box-shadow: 0 0 0 #d4ac0d;
         }
         
-        /* Рулетка */
         #roulette-container {
             display: none;
             margin-top: 20px;
             position: relative;
+            z-index: 5;
         }
         .pointer {
             position: absolute;
@@ -96,7 +106,6 @@
             background-color: #fff;
         }
 
-        /* Модальное окно победы */
         #modal {
             display: none;
             position: fixed;
@@ -138,23 +147,31 @@
             margin-bottom: 10px;
             line-height: 1.3;
         }
-        
-        /* Стили для выделения победной цифры */
         .highlight-number {
             font-size: 42px;
-            color: #e74c3c; /* Красный цвет */
+            color: #e74c3c;
             display: inline-block;
             margin: 5px 0;
             text-shadow: 2px 2px 0px rgba(255,255,255,0.5);
         }
-
-        /* Стили для зеленых пожеланий */
         .win-phrase {
             font-size: 20px;
-            color: #1e8449; /* Насыщенный зеленый цвет */
+            color: #1e8449;
             font-weight: bold;
             margin-bottom: 20px;
             text-transform: uppercase;
+        }
+
+        /* Анимация конфетти */
+        .confetti {
+            position: fixed;
+            top: -50px;
+            z-index: 90;
+            user-select: none;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            to { transform: translateY(110vh) rotate(360deg); }
         }
     </style>
 </head>
@@ -167,7 +184,6 @@
         
         <div class="input-group">
             <label>Всего номеров на смене:</label>
-            <!-- Добавлен автоматический сброс на 20, если введено больше -->
             <input type="number" id="total-numbers" value="10" min="2" max="20" oninput="if(this.value > 20) this.value = 20;">
         </div>
 
@@ -185,13 +201,12 @@
         <canvas id="wheel" width="300" height="300"></canvas>
     </div>
 
-    <!-- Победное окно -->
     <div id="modal">
         <div class="modal-content">
             <div class="yak-img-container">
                 <img src="yak.png" alt="Якубович" onerror="this.style.display='none';">
             </div>
-            <div class="win-text" id="win-announcement">Цифра <span class="highlight-number">X</span> на барабане!</div>
+            <div class="win-text" id="win-announcement">Цифра <br><span class="highlight-number">X</span><br> на барабане!</div>
             <div class="win-phrase" id="win-phrase">Удачи в трассе!</div>
             <button onclick="closeModal()">Сыграть еще раз</button>
         </div>
@@ -285,6 +300,22 @@
             spinTimeout = setTimeout(rotateWheel, 30);
         }
 
+        function throwConfetti() {
+            const symbols = ['🚕', '💸', '🎉', '🏁', '✨'];
+            for (let i = 0; i < 40; i++) {
+                let conf = document.createElement('div');
+                conf.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+                conf.classList.add('confetti');
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                conf.style.fontSize = (Math.random() * 15 + 15) + 'px';
+                document.body.appendChild(conf);
+                
+                // Удаляем элементы после падения
+                setTimeout(() => conf.remove(), 4000);
+            }
+        }
+
         function stopRotateWheel() {
             clearTimeout(spinTimeout);
             let degrees = currentAngle * 180 / Math.PI + 90;
@@ -292,13 +323,13 @@
             let index = Math.floor((360 - degrees % 360) / arcd);
             
             setTimeout(() => {
-                // Обновленный текст с выделенной цифрой
                 document.getElementById('win-announcement').innerHTML = "Цифра <br><span class='highlight-number'>" + participants[index] + "</span><br> на барабане!";
                 
                 let randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
                 document.getElementById('win-phrase').innerText = randomPhrase;
 
                 document.getElementById('modal').style.display = 'flex';
+                throwConfetti();
             }, 500);
         }
 
